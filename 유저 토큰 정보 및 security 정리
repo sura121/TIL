@@ -1,0 +1,414 @@
+##Spring 로그인 유지
+
+**@SessionAttribute 세션관리**
+
+*Spring Session*
+- 기존 JSP환경에서 세션을 적용 시 HttpSession클래스를 사용하였다. 스프링 환경에서는 이를 더 효율적이게 관리할 수 있도록 어노테이션형태로 세션의 관리기능을 제공한다.
+- 세션을 적용하기 위해서 SessionAttributes라는 어노테이션이 필요하다. 내부적으로는 파라메터로 세션의 속성값을 넣어준다. 
+---
+**JWT(JSON Web Token)**
+Claim 기반 토큰의 개념
+ - API나 서비스를 제공하는 서버 입장에서 그 access_token을 통해서 사용자에 연관된 권한(예를 들어 scope같은 것)을 식별한 뒤 권한을 허용해주는 구조이다.
+
+
+==OAuth 토큰의 경우==
+1. API 클라이언트가 Authorization Server (토큰 발급서버)로 토큰을 요청한다.
+이때, 토큰 발급을 요청하는 사용자의 계정과 비밀번호를 넘기고, 이와 함께 토큰의 권한(용도)을 요청한다. 여기서는 일반 사용자 권한(enduser)과 관리자 권한(admin)을 같이 요청하였다.
+
+2. 토큰 생성 요청을 받은 Authorization Server는 사용자 계정을 확인한 후, 이 사용자에게 요청된 권한을 부여해도 되는지 계정 시스템등에 물어본 후, 사용자에게 해당 토큰을 발급이 가능하면 토큰을 발급하고, 토큰에 대한 정보를 내부(토큰 저장소)에 저장해놓는다.
+
+3.  이렇게 생성된 토큰은 API 클라이언트로 저장된다.
+
+4. API 클라이언트는 API를 호출할때 이 토큰을 이용해서 Resource Server(API 서버)에 있는 API를 호출한다.
+
+5. 이때 호출되는 API는 관리자 권한을 가지고 있어야 사용할 수 있기 때문에, Resource Server가 토큰 저장소에서 토큰에 관련된 사용자 계정, 권한 등의 정보를 가지고 온다. 이 토큰에 (관리자)admin 권한이 부여되어 있기 때문에, API 호출을 허용한다. 위에 정의한 시나리오에서는 그 사용자가 속한 “회사”의 사용자 정보만 조회할 수 있다. 라는 전제 조건을 가지고 있기 때문에, API 서버는 추가로 사용자 데이타 베이스에서 이 사용자가 속한 “회사” 정보를 찾아와야한다.
+
+6. API서버는 응답을 보낸다
+
+==JWT와 같은 Claim 기반의 토큰 흐름==
+
+1. 토큰을 생성 요청하는 방식은 동일하다.  마찬가지로 사용자를 인증한다음에, 토큰을 생성한다.
+
+2. 다른 점은 생성된 토큰에 관련된 정보를 별도로 저장하지 않는다는 것이다. 토큰에 연관되는 사용자 정보나 권한등을 토큰 자체에 넣어서 저장한다.
+
+3.  API를 호출하는 방식도 동일하다.
+
+4. Resource Server (API 서버)는 토큰 내에 들어 있는 사용자 정보를 가지고 권한 인가 처리를 하고 결과를 리턴한다.결과적으로 차이점은 토큰을 생성하는 단계에서는 생성된 토큰을 별도로 서버에서 유지할 필요가 없으며 토큰을 사용하는 API 서버 입장에서는 API 요청을 검증하기 위해서 토큰을 가지고 사용자 정보를 별도로 계정 시스템 등에서 조회할 필요가 없다는 것이다.
+
+
+---
+**Spring security**
+- 단 몇십줄의 코드만으로도 대형 웹서비스사와 비슷한 수준의 보안을 유지할 수 있다는 장점이 있습니다.
+
+ ==보안이란?==
+ ^Authentication과Authorization^
+ 인증 종류 
+    - 크리덴셜 기반인증 
+    - 이중 인증
+    - 물리적 인증
+	
+ 권한 부여
+     - 부여된 권한
+     - 리소스의 권한
+     
+     
+1. 설정
+   POM.XML 파일에 라이브러리 추가
+
+```
+ <dependency>
+
+            <groupId>org.springframework.security</groupId>
+
+            <artifactId>spring-security-web</artifactId>
+
+            <version>3.2.3.RELEASE</version>
+
+        </dependency>
+
+        <dependency>
+
+            <groupId>org.springframework.security</groupId>
+
+            <artifactId>spring-security-config</artifactId>
+
+            <version>3.2.3.RELEASE</version>
+
+  </dependency>
+  <dependency>
+			<groupId>org.springframework.security</groupId>
+			
+            <artifactId>spring-security-taglibs</artifactId>
+			
+            <version>3.2.4.RELEASE</version>
+ </dependency>
+```
+
+
+2.WEB.XML 수정
+
+```
+<context-param>
+
+		<param-name>contextConfigLocation</param-name>
+
+		<param-value>
+
+			/WEB-INF/spring/root-context.xml
+
+			/WEB-INF/spring/security-context.xml       <--- 추가 
+
+		</param-value>
+    </context-param>
+
+
+    <filter>
+
+        <filter-name>springSecurityFilterChain</filter-name>
+        <filter-class>org.springframework.web.filter.DelegatingFilterProxy</filter-class>
+    </filter>
+    <filter-mapping>
+
+        <filter-name>springSecurityFilterChain</filter-name>
+
+        <url-pattern>/*</url-pattern>
+
+    </filter-mapping>
+```
+
+
+3.스프링 시큐리티 <http> 설정(security-content.xml)
+
+```
+<http> 
+<intercept-url pattern="/**" access="hasRole('USER')" />
+<form-login /> 
+<logout /> 
+<!-- provider --> 
+</http>  
+<authentication-manager> 
+<authentication-provider> 
+<user-service> 
+<user name="user" password="password" authorities="ROLE_USER" /> </user-service> </authentication-provider> </authentication-manager>
+```
+
+**설정 알아보기**
+
+설정파일 내의 <http> 요소에서 웹 관련 기능을 설정합니다. 위의 사용된 기본 값들을 더 적어보면 다음과 같습니다.
+
+```
+<http use-expressions="true">
+	<intercept-url pattern"/**" access="hasRole('USER')"/>
+    <form-login login-page="/login"/>
+    <logout logout-url="/logout" />
+</http>    
+```
+
+use-expressions 속성은 <intercept-url>의 access 속성에 표현식을 사용할 수 있다는 뜻입니다. 이 값이 "false"이면 access="USER" 로 값을 바로 사용해야 합니다. ADMIN 권한 부여시에도 USER권한 페이지에 접속하려고 할 때 USER권한을 동시에 가지고 있어야 됩니다.
+
+
+**테이블 추가 컬럼**
+```
+ENABLED int(1) NOT NULL DEFAULT '1',
+AUTHORITY varchar(20) NOT NULL DEFAULT 'ROLE_USER'
+ ```
+**security-context.xml**
+```
+	<security:authentication-manager>
+	<security:authentication-provider>
+	<security:jdbc-user-service data-source-ref="dataSource"
+	users-by-username-query="select id,password,enabled,name from TBL_MEMBER where id=?"
+	authorities-by-username-query="select id,authority from TBL_MEMBER where id=?"
+	/>
+	</security:authentication-provider>
+	</security:authentication-manager>
+```
+
+user 정보를 가져오는 쿼리와 authoritites 인증후 권한을 가져오는 쿼리를 실행 하여 security에서 mysql DB에 기본정보를 가져와서 로그인 할 수 있다.
+ 
+ 
+ 
+ 
+ 
+ **유저 info 가져오기** 
+ 
+ Spring security는 사용자 정보를 Session에 따로 저장하지 않고 사용한다. Security를 사용하면 사용자 정보가 인증후 어딘가 보관은 되어있어 찾기 힘들다.
+ 
+ 사용자 요청이 들어오는 Controller에서 사용법을 보면 요청을 받는 method의 파라미터로 Authentication를 지정 하면된다.
+ 
+ ```
+ 	@RequestMapping(value="/login", method=RequestMethod.GET)
+	public String loginGet(Locale locale, Model model, Authentication auth){
+		MemberVO vo = (MemberVO) auth.getPrincipal();
+		logger.info("Welcome checkAuth! Authentication is {}.", auth);
+		logger.info("Vo======",vo);
+		model.addAttribute("auth",auth);
+		model.addAttribute("vo",vo);
+		
+		return "login";
+	}
+ ```
+ Authentication 의 getPrincipal()을 이용해서 MemberVO로 캐스팅을하면 사용자 정보를 볼 수 있다.
+ 그리고 나서 pom.xml에 security-taglibs 를 추가하여 jsp에 security taglib을 등록하면 된다
+ 
+ ```
+ <%@ taglib uri="http://www.springframework.org/security/tags" prefix="sec" %> 
+ ```
+ jsp상단에 등록
+  - security tag는 authentication과 authorize,accesscontrollist 이렇게 3가지가 지원된다.
+
+상단에 tag를 추가하고 사용 방법으로
+```
+principal : <sec:authentication property="principal"/>
+
+principal.username : <sec:authentication property="principal.username"/>
+
+principal.password : <sec:authentication property="principal.password"/>
+
+principal.email : <sec:authentication property="principal.email"/>
+
+principal.enabled : <sec:authentication property="principal.enabled"/>
+
+principal.accountNonExpired : <sec:authentication property="principal.accountNonExpired"/>
+```
+
+이런식으로 user정보를 가져 올 수 있다. 하지만 DB에 있는 다른 정보를 가지고 오려면 User클래스를 상속받아서 확장 시켜야지만 된다.
+
+일반적으로 sucrity 에서 제공해주는 User클래스는
+
+```
+    private String password;
+    private final String username;
+    private final Set<GrantedAuthority> authorities;
+    private final boolean accountNonExpired;
+    private final boolean accountNonLocked;
+    private final boolean credentialsNonExpired;
+    private final boolean enabled; 
+ 
+```
+
+만 존재하기 때문에 사용자가 직접 추가를 해야된다.
+
+User클래스를 상속받아서 확장을 할경우 중복세션 방지등의 기능을 추가 적으로 구현하지 않아도 적용시킬수 있다.
+```
+public class UserVO extends User {
+
+	/**
+	 * 
+	 */
+	private static final long serialVersionUID = 1L;
+	private String name;
+	public UserVO(String username, String password, boolean enabled, boolean accountNonExpired,
+			boolean credentialsNonExpired, boolean accountNonLocked,
+			Collection<? extends GrantedAuthority> authorities,String name) {
+		super(username, password, enabled, accountNonExpired, credentialsNonExpired, accountNonLocked, authorities);
+		// TODO Auto-generated constructor stub
+		this.name = name;
+	}
+	public String getName() {
+		return name;
+	}
+	public void setName(String name) {
+		this.name = name;
+	}
+	
+	@Override
+	public String toString() {
+		return "UserVO [name=" + name + "]";
+	}
+	
+}
+```
+
+유저 정보 이름을 가져오기 위해 User를 상속받은 UserVO를 만들었습니다. 이름을 추가해줍니다.
+
+Mybatis와 연동을 위해 기존 jdbc연결을 주석 처리 해주었습니다.
+
+```
+<!-- 	<security:jdbc-user-service data-source-ref="dataSource" id="userService"
+	users-by-username-query="select id,password,enabled,name from TBL_MEMBER where id=?"
+	authorities-by-username-query="select id,authority from TBL_MEMBER where id=?"
+	/> -->
+```
+mybatis를 연동하기 위해 원래 있던 SqlSession객체를 주입가능을 알아봤지만 글쓴이가 직접주입은 안된다고 하였습니다.
+그래서 여기서 만들어준 datasource-context.xml spring security를 위하여 만든 새로운 빈객체를 가져다가 사용 하였습니다.
+
+**datasource-context.xml**
+```
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:aop="http://www.springframework.org/schema/aop"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+		http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd">
+
+	
+	<bean id="dataSource" class="org.springframework.jndi.JndiObjectFactoryBean">
+	 <property name="jndiName" value="study/security"/>
+	 <property name="resourceRef" value="true"></property>
+	</bean>
+	
+	<bean id="sqlSessionFactory" class="org.mybatis.spring.SqlSessionFactoryBean">
+		<property name="dataSource" ref="dataSource"></property>
+		<property name="configLocation" value="classpath:/mybatis-config.xml"></property>
+		<property name="mapperLocations" value="classpath:/mappers/*.xml"></property>
+	</bean>
+	
+	<bean id="sqlSession" class="org.mybatis.spring.SqlSessionTemplate">
+ 	<constructor-arg index="0" ref="sqlSessionFactory" />
+	</bean> 
+
+</beans>
+```
+
+context 파일을 만들어준뒤 web.xml에 contextConfigLocation에 위치를 추가해 줍니다.
+
+그리고 나서 UserDetailsService라는 인터페이스를 구현하는 UserAuthenticationService를 만들어 줍니다.
+이 클래스에서 오버라이드해야되는 loadUserByUsername을 통해 필요한 정보를 가지고 오면 됩니다.
+```
+package org.seonbeen.security;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.log4j.Logger;
+import org.mybatis.spring.SqlSessionTemplate;
+import org.seonbeen.domain.UserVO;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
+import org.springframework.stereotype.Service;
+
+@Service
+public class UserAuthenticationService implements UserDetailsService {
+	
+	private static Logger logger = Logger.getLogger(UserAuthenticationService.class);
+	private SqlSessionTemplate sqlSession;
+	
+	public UserAuthenticationService() {
+		// TODO Auto-generated constructor stub
+	}
+	
+	public UserAuthenticationService(SqlSessionTemplate sqlSession) {
+		// TODO Auto-generated constructor stub
+		this.sqlSession = sqlSession;
+	}
+	
+	@Override
+	public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
+		// TODO Auto-generated method stub
+		Map<String, Object> user = sqlSession.selectOne("org.seonbeen.mappers.membermapper.loginUser", username);
+		if(user == null) throw new UsernameNotFoundException(username);
+		logger.info(user.toString());
+		List<GrantedAuthority> gas = new ArrayList<GrantedAuthority>();
+		gas.add(new SimpleGrantedAuthority(user.get("authority").toString()));
+		return new UserVO(user.get("username").toString(), user.get("password").toString(), (Integer)user.get("enabled") == 1, true, true, true, gas,user.get("name").toString());
+		
+	}
+
+}
+```
+
+클래스를 만든뒤에 mapper에 쿼리문을 등록해야 됩니다 쿼리문은 security에서 기본으로 받아야할 데이터들 username(id), password, enabled(아이디 활성화 상태), authority(권한[USER or ADMIN..])을 넣어야 됩니다.
+```
+  <select id="loginUser" resultType="map">
+  select id as username, name, password, enabled, authority as authority from TBL_MEMBER where id=#{id}
+  </select>
+```
+
+이후에 인증된 사용자 정보를 Spring MVC에서 사용을 하려면 보통은 Session값에 저장을 하지만 security는 인증이 된후 사용자 정보는 
+principal이라는 객체에 저장이 된다.
+
+```
+	@RequestMapping(value="/apitest", method = RequestMethod.GET)
+	@Secured({"ROLE_USER"})
+	public String apiTest(Locale locale, Model model, Authentication auth, Principal principal) throws Exception{
+		
+		logger.info(principal);
+		logger.info("Welcome checkAuth! Authentication is {}."+auth);
+		UserVO vo2 =  (UserVO) auth.getPrincipal();
+		
+		logger.info("UserVO============================"+vo2);
+		String name = auth.getName();
+		logger.info(name);
+		Map<String,Object> realnick = dao.selectUser(name);
+		logger.info("=============================="+realnick);
+		
+		model.addAttribute("nick", realnick.get("name"));
+		model.addAttribute("auth",auth);
+	
+		return "api";
+	}
+    ```
+
+Authentication getPrincipal()을 UserVO로 캐스팅하여 사용하면 DB에있는 정보를 볼 수가 있습니다.
+이 데이터를 모델로 담아서 jsp에 넘겨줄수 있습니다.
+
+
+Controller에서 말고 jsp뷰 부분에서 security taglib을 통해서 손쉽게 security기본 정보를 가지고 올 수 있습니다. 
+```
+<p>principal : <sec:authentication property="principal"/></p>
+<p>principal.username : <sec:authentication property="principal.username"/></p>
+<p>principal.password : <sec:authentication property="principal.password"/></p>
+<p>principal.email : <sec:authentication property="principal.email"/></p>
+<p>principal.enabled : <sec:authentication property="principal.enabled"/></p>
+<p>principal.accountNonExpired : <sec:authentication property="principal.accountNonExpired"/></p>
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
