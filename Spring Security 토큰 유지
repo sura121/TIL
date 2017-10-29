@@ -1,0 +1,9 @@
+##SPRING Seucrity 토큰 유지
+
+Rest API 보안 강화 작업시 Spring security를 통해서 할 수 있다. 기본 적으로 Spring security에는 csrf 토큰 관리가 있어서 쉽게 적용 할 수 있다.
+
+security csrf토큰이 일정 시간이 지나면 만료가 된다고 해서 찾아 보니 해결책이 여러개 있었습니다.
+
+1. 자바스크립트에서 세션 확인후 만료시 세션 갱신
+2. 예외 핸들러를 재구현하여 Csrf 타임아웃시 적절한 처리를 하도록 수정
+3. 쿠키에 csrf 토큰 삽입
