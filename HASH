@@ -1,0 +1,36 @@
+해쉬 테이블 알고리즘
+
+```
+class Hash
+{
+    public $hashtable = array();
+    public $hashtable_size;
+
+    public function __construct($tablesize)
+    {
+        if($tablesize) {
+            $this->HashTableSize = $tablesize;
+        } else {
+            print "Unknown file size\n";
+            return -1;
+        }
+    }
+
+    public  function __destruct()
+    {
+        unset($this->hashtable);
+    }
+
+    public  function  generate_bucket($string)
+    {
+        for($i=0; $i <= strlen($string); $i++) {
+            $hash = ord($string[$i]) + ($hash << 5) - $hash;
+        }
+        print "".$this->HashTableSize."\n";
+        return($hash%$this->HashTableSize);
+    }
+
+}
+```
+
+버켓 생성 및 해쉬 테이블 값 삭제 알고리즘 작성
