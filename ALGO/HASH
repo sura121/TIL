@@ -1,6 +1,14 @@
 해쉬 테이블 알고리즘
 
 ```
+<?php
+/**
+ * Created by PhpStorm.
+ * User: user
+ * Date: 2018. 12. 30.
+ * Time: 오전 9:30
+ */
+
 class Hash
 {
     public $hashtable = array();
@@ -29,76 +37,79 @@ class Hash
         print "".$this->HashTableSize."\n";
         return($hash%$this->HashTableSize);
     }
-    
-        public  function  add($string, $associated_array)
-        {
-                  $bucket = $this->generate_bucket($string);
 
-                  $tmp_array = array();
-                  $tmp_array['string'] = $string;
-                  $tmp_array['assoc_array'] = $associated_array;                
+    public  function  add($string, $associated_array)
+    {
+        $bucket = $this->generate_bucket($string);
 
-                  if(!isset($this->HashTable[$bucket])) {
-                                $this->HashTable[$bucket] = $tmp_array;
-                  } else {
-                        if(is_array($this->HashTable[$bucket])) {
-                                array_push($this->HashTable[$bucket], $tmp_array);
-                        } else {
-                                $tmp = $this->HashTable[$bucket];
-                                $this->HashTable[$bucket] = array();
-                                array_push($this->HashTable[$bucket], $tmp);
-                                array_push($this->HashTable[$bucket], $tmp_array);
-                        }
+        $tmp_array = array();
+        $tmp_array['string'] = $string;
+        $tmp_array['assoc_array'] = $associated_array;
+
+        if(!isset($this->HashTable[$bucket])) {
+            $this->HashTable[$bucket] = $tmp_array;
+        } else {
+            if(is_array($this->HashTable[$bucket])) {
+                array_push($this->HashTable[$bucket], $tmp_array);
+            } else {
+                $tmp = $this->HashTable[$bucket];
+                $this->HashTable[$bucket] = array();
+                array_push($this->HashTable[$bucket], $tmp);
+                array_push($this->HashTable[$bucket], $tmp_array);
+            }
+        }
+
+    }
+
+    public  function  delete($string, $attrname, $attrvalue)
+    {
+        $bucket = $this->generate_bucket($string);
+
+        if(is_null($this->HashTable[$bucket])) {
+            return -1;
+        } else {
+            if(is_array($this->HashTable[$bucket])) {
+                for($x = 0; $x <= sizeof($this->HashTable[$bucket]); $x++) {
+                    if(($this->HashTable[$bucket][$x]['string'] == $string) && ($this->HashTable[$bucket][$x]['.$attrname.'] == $attrvalue)) {
+                        unset($this->HashTable[$bucket][$x]);
+                    }
                 }
-
+            } else {
+                unset($this->HashTable[$bucket][$x]);
+            }
         }
-
-        public  function  delete($string, $attrname, $attrvalue) 
-        {       
-                $bucket = $this->generate_bucket($string);
-
-                if(is_null($this->HashTable[$bucket])) {
-                                return -1;
-                } else {
-                        if(is_array($this->HashTable[$bucket])) {
-                                for($x = 0; $x <= sizeof($this->HashTable[$bucket]); $x++) {
-                                        if(($this->HashTable[$bucket][$x]['string'] == $string) && ($this->HashTable[$bucket][$x]['.$attrname.'] == $attrvalue)) {
-                                                unset($this->HashTable[$bucket][$x]);   
-                                        }
-                                }
-    } else {
-                                unset($this->HashTable[$bucket][$x]);
-                        }
-                }       
-                /** everything is OK **/                        
-                return 0;
-        }
+        /** everything is OK **/
+        return 0;
+    }
 
 
-        public  function  search($string) 
-        {
-                $resultArray = array();
+    public  function  search($string)
+    {
+        $resultArray = array();
 
-                $bucket = $this->generate_bucket($string);
+        $bucket = $this->generate_bucket($string);
 
-                if(is_null($this->HashTable[$bucket])) {
-                        return -1;
-                } else {
-                        if(is_array($this->HashTable[$bucket])) {
-                                for($x = 0; $x <= sizeof($this->HashTable[$bucket]); $x++) {
-                                        if(strcmp($this->HashTable[$bucket][$x]['string'], $string) == 0) {
-                                                array_push($resultArray,$this->HashTable[$bucket][$x]);
-                                        }
-                                 }
-                        } else {
-                                array_push($resultArray,$this->HashTable[$bucket]);
-                        }
+        if(is_null($this->HashTable[$bucket])) {
+            return -1;
+        } else {
+            if(is_array($this->HashTable[$bucket])) {
+                for($x = 0; $x <= sizeof($this->HashTable[$bucket]); $x++) {
+                    if(strcmp($this->HashTable[$bucket][$x]['string'], $string) == 0) {
+                        array_push($resultArray,$this->HashTable[$bucket][$x]);
+                    }
                 }
-
-                return($resultArray);
+            } else {
+                array_push($resultArray,$this->HashTable[$bucket]);
+            }
         }
+
+        return($resultArray);
+    }
 
 }
+
+
+
 ```
 
 버켓 생성 및 해쉬 테이블 값 삭제 알고리즘 작성
