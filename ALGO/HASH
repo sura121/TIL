@@ -113,3 +113,15 @@ class Hash
 ```
 
 버켓 생성 및 해쉬 테이블 값 삭제 알고리즘 작성
+
+    public  function  generate_bucket($string)
+    {
+       for($i=0; $i <= strlen($string); $i++) {
+           $hash = ord($string[$i]) + ($hash << 5) - $hash;
+       }
+       print "".$this->HashTableSize."\n";
+       return($hash%$this->HashTableSize);
+    }
+    
+ord() $string의 글자 하나씩 아스키코드 값으로 변경 << 비트 연산자 왼쪽으로 5 이동한 값을 구해서 각 알파벳에 대한 고유값
+유니크한 값을 만들어 bucket의 key값으로 사용 
