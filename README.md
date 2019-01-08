@@ -12,3 +12,9 @@ NomadCoder CSS study
 - [x] Flex Wrap
 - [x] Aligh Self
 
+ALGORITHM
+-------
+
+- [x] Hash Table 
+- [] Big-O Algorithm
+
