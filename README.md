@@ -16,5 +16,5 @@ ALGORITHM
 -------
 
 - [x] Hash Table 
-- [] Big-O Algorithm
+- [ ] Big-O Algorithm
 
