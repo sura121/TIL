@@ -15,6 +15,7 @@ NomadCoder CSS study
 ### CSS GRID
 
 - [x] CSS Basic CSS Grid
+- [x] Auto Rows and Columns
 
 ALGORITHM
 -------
