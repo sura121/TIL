@@ -16,6 +16,9 @@ NomadCoder CSS study
 
 - [x] CSS Basic CSS Grid
 - [x] Auto Rows and Columns
+- [x] Template Areas
+- [x] fr unit, repeat
+- [x] minmax, max-content, min content
 
 ALGORITHM
 -------
