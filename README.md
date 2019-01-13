@@ -19,6 +19,8 @@ NomadCoder CSS study
 - [x] Template Areas
 - [x] fr unit, repeat
 - [x] minmax, max-content, min content
+- [x] auto fill, auto fit
+- [x] justify Content, Align Content And Place content
 
 ALGORITHM
 -------
